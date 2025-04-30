@@ -1,4 +1,3 @@
-
 (function () {
   'use strict';
 
@@ -153,14 +152,15 @@
     }
   });
 
-  // Instant-mode compatible spin detection
+  // Instant-mode spin detection logic
   let lastStableText = "", lastStableNum = 0, lastSpinTime = 0;
-  const STABLE_DELAY = 100, SPIN_COOLDOWN = 250;
+  const STABLE_DELAY = 100, SPIN_COOLDOWN = 200;
+  let lastSeenText = "", stableTimer = null;
 
   function getMultiplierText() {
     const candidates = Array.from(document.querySelectorAll("span, div")).filter(el => {
       const txt = el.textContent.trim();
-      return /^\d+(\.\d+)?×$/.test(txt) && getComputedStyle(el).fontSize.replace("px", "") > 30;
+      return /^\\d+(\\.\\d+)?×$/.test(txt) && getComputedStyle(el).fontSize.replace("px", "") > 30;
     });
     if (candidates.length > 0) {
       const biggest = candidates.sort((a, b) =>
@@ -171,13 +171,10 @@
     return null;
   }
 
-  function detectSpinLoop() {
-    let lastSeenText = "", stableTimer = null;
-    setInterval(() => {
-      const now = Date.now();
-      const txt = getMultiplierText();
-      if (!txt) return;
-
+  function detectSpinLoopRAF() {
+    const now = Date.now();
+    const txt = getMultiplierText();
+    if (txt) {
       const parsed = parseFloat(txt.replace("×", ""));
       const timeSinceLastSpin = now - lastSpinTime;
 
@@ -186,11 +183,10 @@
         if (stableTimer) clearTimeout(stableTimer);
         stableTimer = setTimeout(() => {
           if (txt === getMultiplierText()) {
-            if (
-              txt !== lastStableText &&
-              parsed !== lastStableNum &&
-              timeSinceLastSpin >= SPIN_COOLDOWN
-            ) {
+            const newText = txt !== lastStableText;
+            const newNum = parsed !== lastStableNum;
+            const passedDelay = timeSinceLastSpin >= SPIN_COOLDOWN;
+            if ((newText || newNum) && passedDelay) {
               lastStableText = txt;
               lastStableNum = parsed;
               lastSpinTime = Date.now();
@@ -204,10 +200,11 @@
           }
         }, STABLE_DELAY);
       }
-    }, 100);
+    }
+    requestAnimationFrame(detectSpinLoopRAF);
   }
 
   loadSession();
   render();
-  detectSpinLoop();
+  requestAnimationFrame(detectSpinLoopRAF);
 })();
