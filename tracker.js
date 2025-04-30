@@ -1,3 +1,4 @@
+
 (function () {
   'use strict';
 
@@ -152,7 +153,6 @@
     }
   });
 
-  // Instant-mode spin detection logic
   let lastStableText = "", lastStableNum = 0, lastSpinTime = 0;
   const STABLE_DELAY = 100, SPIN_COOLDOWN = 200;
   let lastSeenText = "", stableTimer = null;
@@ -160,7 +160,7 @@
   function getMultiplierText() {
     const candidates = Array.from(document.querySelectorAll("span, div")).filter(el => {
       const txt = el.textContent.trim();
-      return /^\\d+(\\.\\d+)?×$/.test(txt) && getComputedStyle(el).fontSize.replace("px", "") > 30;
+      return /^\d+(\.\d+)?×$/.test(txt) && getComputedStyle(el).fontSize.replace("px", "") > 30;
     });
     if (candidates.length > 0) {
       const biggest = candidates.sort((a, b) =>
@@ -171,7 +171,7 @@
     return null;
   }
 
-  function detectSpinLoopRAF() {
+  function detectHybridLoop() {
     const now = Date.now();
     const txt = getMultiplierText();
     if (txt) {
@@ -201,10 +201,11 @@
         }, STABLE_DELAY);
       }
     }
-    requestAnimationFrame(detectSpinLoopRAF);
+    requestAnimationFrame(detectHybridLoop);
+    setTimeout(detectHybridLoop, 200);
   }
 
   loadSession();
   render();
-  requestAnimationFrame(detectSpinLoopRAF);
+  detectHybridLoop();
 })();
